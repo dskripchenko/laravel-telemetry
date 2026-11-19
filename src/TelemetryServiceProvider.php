@@ -80,9 +80,10 @@ final class TelemetryServiceProvider extends ServiceProvider
 
         $router = $this->app->make(Router::class);
         $router->get($path.'/page.js', [PageController::class, 'script'])->name('telemetry.script');
+        // The name first: middleware() of Laravel 11 does not promise the route back.
         $router->post($path.'/page', [PageController::class, 'store'])
-            ->middleware(ThrottleRequests::class.':'.$perMinute.',1')
-            ->name('telemetry.page');
+            ->name('telemetry.page')
+            ->middleware(ThrottleRequests::class.':'.$perMinute.',1');
     }
 
     /** Redis tells of its commands only when asked to. */
