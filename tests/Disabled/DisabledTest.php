@@ -13,3 +13,8 @@ it('does nothing when off', function (): void {
     expect($response->headers->has('Server-Timing'))->toBeFalse()
         ->and($this->sink->events)->toBe([]);
 });
+
+it('has no page routes when off', function (): void {
+    $this->get('/telemetry/page.js')->assertNotFound();
+    $this->post('/telemetry/page')->assertNotFound();
+});
