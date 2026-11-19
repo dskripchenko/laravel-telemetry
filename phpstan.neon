@@ -3,3 +3,7 @@ parameters:
     paths:
         - src
         - config
+    # Three majors of the framework annotate the same methods differently
+    # (Request::route() is nullable in one and not in another): a check that
+    # one of them calls redundant is needed by the next.
+    treatPhpDocTypesAsCertain: false
