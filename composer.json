@@ -1,0 +1,73 @@
+{
+    "name": "dskripchenko/laravel-telemetry",
+    "description": "Performance telemetry for Laravel without an agent or a database: a Server-Timing header on every answer, one structured log line per request, job and command, and the slow and repeated (N+1) queries behind them.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/dskripchenko/laravel-telemetry",
+    "keywords": ["laravel", "telemetry", "performance", "server-timing", "observability", "slow-queries", "n-plus-one", "logging", "dskripchenko"],
+    "authors": [
+        {
+            "name": "Denis Skripchenko"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/dskripchenko/laravel-telemetry/issues",
+        "source": "https://github.com/dskripchenko/laravel-telemetry",
+        "security": "https://github.com/dskripchenko/laravel-telemetry/security/policy"
+    },
+    "require": {
+        "php": "^8.3",
+        "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/events": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/http": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/log": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/queue": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/routing": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "guzzlehttp/guzzle": "^7.8",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+        "pestphp/pest": "^3.0 || ^4.0 || ^5.0",
+        "phpstan/phpstan": "^2.0"
+    },
+    "suggest": {
+        "illuminate/redis": "To count Redis commands and their time (cache, sessions, queues on Redis)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Dskripchenko\\Telemetry\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dskripchenko\\Telemetry\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Dskripchenko\\Telemetry\\TelemetryServiceProvider"
+            ]
+        },
+        "branch-alias": {
+            "dev-main": "0.x-dev"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "analyse": "phpstan analyse",
+        "format": "pint"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
