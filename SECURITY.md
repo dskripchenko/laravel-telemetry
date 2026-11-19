@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | yes       |
+| 0.2.x   | yes       |
+| 0.1.x   | no        |
 
 ## Reporting a vulnerability
 
@@ -28,4 +29,9 @@ the release is out, and credited in the changelog unless you ask otherwise.
   pattern.
 - A guest gets the total alone in `Server-Timing` by default: the number of queries
   and the time in them would tell a stranger what a failed sign-in did.
+- The page beacon is an endpoint anyone who can open the site can call: it keeps
+  only the collector's fields, each of its type and within its bounds, names a page
+  by a short pattern or a masked path, takes same-origin requests only, limits them
+  per address and answers 204 whatever it did — it cannot be used to write text
+  into the log or to learn anything.
 - Telemetry never fails the work it measures: a sink that cannot write is silent.

@@ -69,7 +69,26 @@ return [
      * Requests that are not measured: probes that come every few seconds.
      * Patterns as in Request::is().
      */
-    'ignore' => ['up', 'health'],
+    'ignore' => ['up', 'health', 'telemetry/*'],
+
+    /*
+     * The page as the person's browser saw it. The package serves a small
+     * collector script and takes its beacon — one per page load:
+     *
+     *     <script defer src="/telemetry/page.js"></script>
+     *
+     * and, when the application is usable,
+     *
+     *     performance.mark('app:ready', { detail: { page: 'orders.list' } })
+     *
+     * path — the prefix of both addresses; throttle — beacons a minute from
+     * one address.
+     */
+    'page' => [
+        'enabled' => env('TELEMETRY_PAGE', true),
+        'path' => env('TELEMETRY_PAGE_PATH', 'telemetry'),
+        'throttle' => env('TELEMETRY_PAGE_THROTTLE', 60),
+    ],
 
     /*
      * Route parameters that name an operation, not an object: they stay in the

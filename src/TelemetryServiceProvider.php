@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dskripchenko\Telemetry;
 
+use Dskripchenko\Telemetry\Http\Controllers\PageController;
 use Dskripchenko\Telemetry\Http\Middleware\MeasureRequest;
 use Dskripchenko\Telemetry\Sinks\LogSink;
 use Dskripchenko\Telemetry\Sinks\NullSink;
@@ -12,8 +13,11 @@ use Dskripchenko\Telemetry\Sinks\StreamSink;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Log\LogManager;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 final class TelemetryServiceProvider extends ServiceProvider
@@ -58,6 +62,27 @@ final class TelemetryServiceProvider extends ServiceProvider
         $this->app->make(Subscriber::class)->subscribe($this->app->make(Dispatcher::class));
         $this->countRedis();
         $this->measureRequests();
+        $this->takePages();
+    }
+
+    /** The collector script and its beacon: two routes outside any group — no session, no CSRF. */
+    private function takePages(): void
+    {
+        $config = $this->app->make(Repository::class);
+        // Cached routes hold these two already: they were here when the cache was made.
+        if ($config->get('telemetry.page.enabled') !== true || ($this->app instanceof CachesRoutes && $this->app->routesAreCached())) {
+            return;
+        }
+        $path = $config->get('telemetry.page.path', 'telemetry');
+        $path = trim(is_string($path) && $path !== '' ? $path : 'telemetry', '/');
+        $throttle = $config->get('telemetry.page.throttle', 60);
+        $perMinute = is_numeric($throttle) && (int) $throttle > 0 ? (int) $throttle : 60;
+
+        $router = $this->app->make(Router::class);
+        $router->get($path.'/page.js', [PageController::class, 'script'])->name('telemetry.script');
+        $router->post($path.'/page', [PageController::class, 'store'])
+            ->middleware(ThrottleRequests::class.':'.$perMinute.',1')
+            ->name('telemetry.page');
     }
 
     /** Redis tells of its commands only when asked to. */

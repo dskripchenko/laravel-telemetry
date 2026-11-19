@@ -16,6 +16,10 @@ Performance telemetry for Laravel without an agent and without a database.
   statement run many times in one request (the usual face of an N+1), each as a
   line of its own with the statement's shape and none of its values.
 - **Slow outgoing calls** — host, path without identifiers, status, time.
+- **The page as the person's browser saw it** — a small collector script the
+  package serves itself sends one beacon per page load: the phases of the
+  navigation, the protocol, the paints, the application's own marks, and what
+  the API calls cost on the wire against what the server says they took.
 
 Nothing is stored in the application, nothing is sent anywhere: the header goes
 to the browser that asked, the lines go to the process's own log. Statements
@@ -99,6 +103,55 @@ what they say.
 context), `null`, or a class of your own implementing
 `Dskripchenko\Telemetry\Sinks\Sink`. Outside production the default is `null`.
 
+## The page in the browser
+
+The server's time is half of the story: a request that took 40 ms in PHP can
+take a second for the person, and only their browser knows. Add the collector
+to the page:
+
+```html
+<script defer src="/telemetry/page.js"></script>
+```
+
+and say when the application is usable — with the browser's own User Timing
+API, no import:
+
+```js
+performance.mark('app:session')                                   // any mark of yours, up to eight
+performance.mark('app:ready', { detail: { page: 'orders.list' } })
+```
+
+Once the first data stops coming after `app:ready` (or 15 s after the load, or
+when the page is hidden), one beacon goes to the application's own server and
+becomes a line:
+
+```json
+{"event":"page","app":"shop","page":"orders.list","nav":"navigate","proto":"h2","start":1.2,"dns":0.0,"connect":180.5,"tls":95.3,"wait":515.1,"server":48.5,"download":5.8,"dom":890.4,"load":1880.0,"fcp":901.3,"lcp":1210.0,"api_ms":3400.2,"api_max":520.1,"api_server":300.0,"api_end":1890.3,"res_n":51,"res_kb":19,"api_n":12,"rtt":250,"down":1.45,"net":"4g","m_session":1100.5,"m_ready":1700.0}
+```
+
+| Field | What it is |
+|---|---|
+| `dns`, `connect`, `tls` | Setting up the connection for the document |
+| `wait` / `server` | Waiting for the document's first byte / what the server says it took (`Server-Timing`) — the difference is the road |
+| `dom`, `load`, `fcp`, `lcp` | The browser's milestones, from the navigation's start |
+| `m_…` | The application's marks (`app:session` → `m_session`) |
+| `api_n`, `api_ms`, `api_max`, `api_server`, `api_end` | API calls of the load: how many, their time on the wire in total and at most, the server's own time in total, when the last one ended |
+| `res_n`, `res_kb` | Resources and kilobytes that went over the wire |
+| `proto`, `rtt`, `down`, `net` | The protocol (`h2`, `h3`) and what the browser knows of the connection |
+
+The marks are plain `performance.mark()`: they are also on the timeline of the
+browser's performance panel. The page is named by the mark's `detail.page`;
+without it, by the path with its identifiers masked. The endpoint keeps only
+these fields, each of its type and within its bounds — a caller cannot write
+text of their own into the log — takes beacons of the same origin only and
+limits them per address (`TELEMETRY_PAGE_THROTTLE`, 60 a minute).
+`TELEMETRY_PAGE=false` turns both routes off; `TELEMETRY_PAGE_PATH` moves them.
+
+```
+# What a page costs the person, and how much of it is the road
+_time:24h event:page | stats by (app, page, proto) count() loads, quantile(0.5, m_ready) ready_p50, quantile(0.95, m_ready) ready_p95, quantile(0.5, wait) wait_p50, quantile(0.5, server) server_p50
+```
+
 ## Marks of your own
 
 ```php
@@ -144,7 +197,9 @@ expect($sink->of('request')[0]['db_n'])->toBeLessThan(10);
 
 A listener call per query, per Redis command and per outgoing call; one
 `json_encode` and one write per unit, after the answer has gone
-(`terminate()`). No queries, no network, no state between requests.
+(`terminate()`). No queries, no network, no state between requests. The
+collector is 2 KB gzipped, cached for an hour, and sends one beacon per page
+load.
 
 ## License
 
